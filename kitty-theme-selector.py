@@ -1,6 +1,10 @@
 import os
 import subprocess
 
+TEMP_CONF_SETTINGS = 'temp'
+TEMP_CONF_LAUNCH = 'temp1'
+MAIN_CONF = 'kitty.conf'
+
 # If options is a tuple then it is an index, 
 # if it is a string then it is the theme name
 def replace_line(pathdest, options):
@@ -15,13 +19,32 @@ def replace_line(pathdest, options):
 
     # theme name    
     if isinstance(options, str):
-        lines.append('include themes/' + options + '.conf')
+        lines.append('include themes/' + options + '.conf\n')
+        write_config(lines, TEMP_CONF_SETTINGS) # write lines to show preview
+        append_temp_config()
+        if confirm(options):
+            write_config(lines, MAIN_CONF) # If confirmed then write to the actual config
     # index number
-    if isinstance(options, tuple):
-        lines.append('include themes/' + options[1][options[0]] + '.conf')
+    elif isinstance(options, tuple):
+        lines.append('include themes/' + (options[1][options[0]]) + '.conf\n')
+        write_config(lines, TEMP_CONF_SETTINGS)
+        append_temp_config()
+        #print(options[1][options[0]])
+        if confirm(options[1][options[0]]): # If confirmed then write to the actual config
+            write_config(lines, MAIN_CONF)
 
-    f = open('kitty.conf', 'w')
-    f.writelines(lines)
+    os.remove(TEMP_CONF_SETTINGS)
+    os.remove(TEMP_CONF_LAUNCH)
+
+def write_config(lines, filename):
+    with open(filename, 'w') as f:
+        f.writelines(lines)
+
+def append_temp_config():
+    #TODO: Check the behaviour in Linux
+    lines = ['launch bash -c "neofetch;echo This is a preview, press a key to exit;read -n 1 -s -r -p "..." "']
+    with open(TEMP_CONF_LAUNCH, 'w') as f:
+        f.writelines(lines)
 
 def get_option():
     print('Please select a theme:')
@@ -36,7 +59,7 @@ def get_option():
         if selection > len(themes) or selection < 1:
             raise ValueError
     except ValueError:
-        # Not an int so check for name 
+        # Not an int so check if the string is valid
         if selection not in themes:
             print('Invalid Selection')
             print('Exiting...')
@@ -58,7 +81,17 @@ def show_options(themes):
 
 def confirm(option):
     #TODO: Check if on Linux it changes right away or if opening a new window is necessary
-    pass
+    # if not then just change it
+    FNULL = open(os.devnull, 'w')
+    terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH], \
+            close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
+    #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH])
+    if input('Confirm color scheme: {} (Y/n)'.format(option)) is not 'Y':
+        terminal.kill()
+        return False
+
+    terminal.kill()
+    return True
 
 def main():
     try:
@@ -70,9 +103,15 @@ def main():
     path = os.getcwd()
     option = get_option()
     replace_line(path, option)
-    confirm(option)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\nInterrupted')
+        print('Exiting...')
+        os.remove(TEMP_CONF_SETTINGS)
+        os.remove(TEMP_CONF_LAUNCH)
+        exit(1)
 else:
     exit(1)
