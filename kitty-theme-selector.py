@@ -48,7 +48,14 @@ def append_temp_config():
 
 def get_option():
     print('Please select a theme:')
-    themes = os.listdir('themes')
+    try:
+        themes = os.listdir('themes')
+    except FileNotFoundError:
+        print('Themes folder not found')
+        print('Please place themes in ~/.config/kitty/themes')
+        print('Themes available at: https://github.com/dexpota/kitty-themes.git')
+        print('Exiting...')
+        exit(1)
     show_options(themes)
 
     selection = input('Enter the name or number of the desired theme: ')
@@ -86,7 +93,7 @@ def confirm(option):
     terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH], \
             close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
     #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH])
-    if input('Confirm color scheme: {} (Y/n)'.format(option)) is not 'Y':
+    if input('Confirm color scheme: {} (Y/n) '.format(option)) is not 'Y':
         terminal.kill()
         return False
 
