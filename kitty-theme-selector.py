@@ -69,8 +69,10 @@ def get_option():
         print('Exiting...')
         exit(1)
     show_options(themes)
-
-    selection = input('Enter the name or number of the desired theme: ')
+    selection = input('Enter the name or number of the desired theme (or q to quit): ')
+    if selection is 'q':
+        print('quitting...')
+        exit(0)
     selection = selection.replace(')', '')
     # Checking if selection is valid input
     try:
@@ -104,13 +106,13 @@ def confirm(option):
     terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH], \
             close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
     #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH]) # for debugging
-    user_input = input('Confirm color scheme: {} (Y/n) '.format(option))
-    if user_input is 'N' or user_input is 'n':
+    user_input = input('Confirm color scheme: {} (y/N) '.format(option))
+    if user_input is 'y' or user_input is 'Y':
         terminal.kill()
-        return False
+        return True
 
     terminal.kill()
-    return True
+    return False
 
 def main():
     try:
@@ -125,13 +127,14 @@ def main():
         option = get_option()
         replace_line(path,option)
     replace_line(path, option)
+    print('Theme changed successfully')
 
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
         print('\nInterrupted')
-        print('Exiting...')
+        print('No Changes Made... Exiting!')
         delete_files()
         exit(1)
 else:
