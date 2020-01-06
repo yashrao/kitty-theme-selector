@@ -104,7 +104,8 @@ def confirm(option):
     terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH], \
             close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
     #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH]) # for debugging
-    if input('Confirm color scheme: {} (y/N) '.format(option)) is 'y':
+    user_input = input('Confirm color scheme: {} (Y/n) '.format(option))
+    if user_input is 'N' or user_input is 'n':
         terminal.kill()
         return False
 
