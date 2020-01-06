@@ -5,49 +5,61 @@ TEMP_CONF_SETTINGS = 'temp'
 TEMP_CONF_LAUNCH = 'temp1'
 MAIN_CONF = 'kitty.conf'
 
+# TODO: add a while loop so you can re-select
+
 # If options is a tuple then it is an index, 
 # if it is a string then it is the theme name
 def replace_line(pathdest, options):
     pathdest += '/kitty.conf'
-    # TODO: add try/catch
-    with open(pathdest) as f:
-        lines = f.readlines()
+    while True:
+        # TODO: add try/catch
+        with open(pathdest) as f:
+            lines = f.readlines()
 
-    for line in lines:
-        if 'include' in line:
-            lines.remove(line)
+        for line in lines:
+            if 'include' in line:
+                lines.remove(line)
+        # theme name    
+        if isinstance(options, str):
+            lines.append('include themes/' + options + '.conf\n')
+            write_config(lines, TEMP_CONF_SETTINGS) # write lines to show preview
+            append_temp_config()
+            if confirm(options):
+                write_config(lines, MAIN_CONF) # If confirmed then write to the actual config
+                break
+            else:
+                options = get_option() # else get the user's choice again
+        # theme index number
+        elif isinstance(options, tuple):
+            lines.append('include themes/' + (options[1][options[0]]) + '.conf\n')
+            write_config(lines, TEMP_CONF_SETTINGS)
+            append_temp_config()
+            if confirm(options[1][options[0]]): # If confirmed then write to the actual config
+                write_config(lines, MAIN_CONF)
+                break
+            else:
+                options = get_option() # else get the user's choice again
+        
+    delete_files()
 
-    # theme name    
-    if isinstance(options, str):
-        lines.append('include themes/' + options + '.conf\n')
-        write_config(lines, TEMP_CONF_SETTINGS) # write lines to show preview
-        append_temp_config()
-        if confirm(options):
-            write_config(lines, MAIN_CONF) # If confirmed then write to the actual config
-    # index number
-    elif isinstance(options, tuple):
-        lines.append('include themes/' + (options[1][options[0]]) + '.conf\n')
-        write_config(lines, TEMP_CONF_SETTINGS)
-        append_temp_config()
-        #print(options[1][options[0]])
-        if confirm(options[1][options[0]]): # If confirmed then write to the actual config
-            write_config(lines, MAIN_CONF)
-
+def delete_files():
     os.remove(TEMP_CONF_SETTINGS)
     os.remove(TEMP_CONF_LAUNCH)
+
 
 def write_config(lines, filename):
     with open(filename, 'w') as f:
         f.writelines(lines)
 
 def append_temp_config():
-    #TODO: Check the behaviour in Linux
-    lines = ['launch bash -c "neofetch;echo This is a preview, press a key to exit;read -n 1 -s -r -p "..." "']
+    #TODO: Find a better way to test out the theme appearance
+    lines = ['launch bash -c "neofetch;echo This is a preview, press any key to exit preview;read -n 1 -s -r -p "..." "']
     with open(TEMP_CONF_LAUNCH, 'w') as f:
         f.writelines(lines)
 
 def get_option():
     print('Please select a theme:')
+    # List out all the options in the themes folder
     try:
         themes = os.listdir('themes')
     except FileNotFoundError:
@@ -87,13 +99,12 @@ def show_options(themes):
         print(themes[i])
 
 def confirm(option):
-    #TODO: Check if on Linux it changes right away or if opening a new window is necessary
-    # if not then just change it
+    os.system('clear')
     FNULL = open(os.devnull, 'w')
     terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH], \
             close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
-    #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH])
-    if input('Confirm color scheme: {} (Y/n) '.format(option)) is not 'Y':
+    #terminal = subprocess.Popen(['kitty', '-c', TEMP_CONF_SETTINGS, '--session', TEMP_CONF_LAUNCH]) # for debugging
+    if input('Confirm color scheme: {} (y/N) '.format(option)) is 'y':
         terminal.kill()
         return False
 
@@ -109,6 +120,9 @@ def main():
         exit(1)
     path = os.getcwd()
     option = get_option()
+    while not option:
+        option = get_option()
+        replace_line(path,option)
     replace_line(path, option)
 
 if __name__ == '__main__':
@@ -117,8 +131,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('\nInterrupted')
         print('Exiting...')
-        os.remove(TEMP_CONF_SETTINGS)
-        os.remove(TEMP_CONF_LAUNCH)
+        delete_files()
         exit(1)
 else:
     exit(1)
