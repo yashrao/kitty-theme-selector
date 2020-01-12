@@ -152,6 +152,7 @@ def main():
         change_theme(path,option)
     change_theme(path, option)
     print('Theme changed successfully')
+    print('Please Restart Kitty...')
     delete_files()
 
 if __name__ == '__main__':
