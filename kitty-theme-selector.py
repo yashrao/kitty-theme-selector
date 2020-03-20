@@ -6,16 +6,18 @@ TEMP_CONF_LAUNCH = 'temp'
 MAIN_CONF = 'kitty.conf'
 THEME_CONF_NAME = 'theme.conf'
 
-# TODO: Symlink the theme instead of replacing the line
-
 # If options is a tuple then it is an index, 
 # if it is a string then it is the theme name
 def change_theme(pathdest, options):
     pathdest += '/kitty.conf'
     while True:
         # TODO: add try/catch
-        with open(pathdest) as f:
-            lines = f.readlines()
+        try:
+            with open(pathdest) as f:
+                lines = f.readlines()
+        except FileNotFoundError:
+            print('Kitty config not found...Creating blank config file')
+            subprocess.run(['touch', 'kitty.conf'])
 
         old_theme = None
         found = False
@@ -76,16 +78,23 @@ def get_option():
     print('Please select a theme:')
     # List out all the options in the themes folder
     try:
-        themes = os.listdir('themes')
+        themes = sorted(os.listdir('themes'))
     except FileNotFoundError:
         print('Themes folder not found')
-        print('Please place themes in ~/.config/kitty/themes')
         print('Themes available at: https://github.com/dexpota/kitty-themes.git')
-        print('Exiting...')
-        exit(1)
+        user_input = input('Would you like to clone repository? (y/N)')
+        if user_input == 'y' or user_input == 'Y':
+            subprocess.run(['git', 'clone', 'https://github.com/dexpota/kitty-themes.git', 'kitty-themes'])
+            subprocess.run(['mv', 'kitty-themes/themes/', 'themes/'])
+            subprocess.run(['rm', '-rf', 'kitty-themes']) # Remove the folder
+            themes = os.listdir('themes')
+        else:
+            print('Please place themes in ~/.config/kitty/themes')
+            print('Exiting...')
+            exit(1)
     show_options(themes)
     selection = input('Enter the name or number of the desired theme (or q to quit): ')
-    if selection is 'q':
+    if selection == 'q':
         print('quitting...')
         exit(0)
     selection = selection.replace(')', '')
@@ -130,7 +139,7 @@ def confirm(option):
     terminal = subprocess.Popen(['kitty', '--session', TEMP_CONF_LAUNCH], \
             close_fds=True, stdout=FNULL, stderr=subprocess.STDOUT)
     user_input = input('Confirm color scheme: {} (y/N) '.format(option))
-    if user_input is 'y' or user_input is 'Y':
+    if user_input == 'y' or user_input == 'Y':
         terminal.kill()
         return True
 
